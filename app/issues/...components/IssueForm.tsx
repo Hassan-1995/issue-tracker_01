@@ -17,7 +17,6 @@ import { z } from "zod";
 const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
   ssr: false,
 });
-
 type IssueFormData = z.infer<typeof issueSchema>;
 
 interface Props {
