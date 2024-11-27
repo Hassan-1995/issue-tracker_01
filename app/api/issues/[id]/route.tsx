@@ -10,6 +10,8 @@ interface Props {
 
 // }
 
+// syntax of PUT and PATCH is almost same
+
 export async function PUT(request: NextRequest, { params: { id } }: Props) {
   const body = await request.json();
   const validation = issueSchema.safeParse(body);
@@ -32,4 +34,20 @@ export async function PUT(request: NextRequest, { params: { id } }: Props) {
   });
 
   return NextResponse.json(updatedIssue, { status: 201 });
+}
+
+export async function DELETE(request: NextRequest, { params: { id } }: Props) {
+  const issue = await prisma.issue.findUnique({
+    where: { id: parseInt(id) },
+  });
+
+  if (!issue) {
+    return NextResponse.json({ error: "Invalid issue." }, { status: 404 });
+  }
+
+  const deletedIssue = await prisma.issue.delete({
+    where: { id: parseInt(id) },
+  });
+
+  return NextResponse.json(deletedIssue);
 }
