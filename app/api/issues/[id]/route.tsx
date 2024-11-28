@@ -46,7 +46,8 @@ export async function PUT(request: NextRequest, { params: { id } }: Props) {
     data: {
       title: body.title,
       description: body.description,
-      assignedToUserId: body.assignedToUserId,
+      ...(body.assignedToUserId && { assignedToUserId: body.assignedToUserId }),
+      // assignedToUserId: body.assignedToUserId,
     },
   });
 
