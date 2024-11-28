@@ -8,6 +8,7 @@ import {
   Text,
 } from "@radix-ui/themes";
 import { useSession } from "next-auth/react";
+import { Skeleton } from "@/app/components";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
@@ -61,7 +62,7 @@ const AuthStatus = () => {
 
   console.log("My current status is: ", status);
 
-  if (status === "loading") return <Text>Loading...</Text>;
+  if (status === "loading") return <Skeleton width="3rem" />;
   if (status === "unauthenticated") {
     return (
       <Link
