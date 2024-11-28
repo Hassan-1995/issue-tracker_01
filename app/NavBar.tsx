@@ -59,7 +59,9 @@ const NavLinks = () => {
 const AuthStatus = () => {
   const { status, data: session } = useSession();
 
-  if (status === "loading") return <Text>hello</Text>;
+  console.log("My current status is: ", status);
+
+  if (status === "loading") return <Text>Loading...</Text>;
   if (status === "unauthenticated") {
     return (
       <Link
@@ -71,28 +73,30 @@ const AuthStatus = () => {
     );
   }
 
-  return;
-  <Box>
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger>
-        <Avatar
-          src={session!.user!.image!}
-          fallback="?"
-          size="2"
-          radius="full"
-          className="cursor-pointer"
-        />
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content>
-        <DropdownMenu.Label>
-          <Text size="2">{session!.user!.email}</Text>
-        </DropdownMenu.Label>
-        <DropdownMenu.Item>
-          <Link href="/api/auth/signout">Logout</Link>
-        </DropdownMenu.Item>
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
-  </Box>;
+  return (
+    <Box>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger>
+          <Avatar
+            src={session!.user!.image!}
+            fallback="?"
+            size="2"
+            radius="full"
+            className="cursor-pointer"
+            referrerPolicy="no-referrer"
+          />
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content>
+          <DropdownMenu.Label>
+            <Text size="2">{session!.user!.email}</Text>
+          </DropdownMenu.Label>
+          <DropdownMenu.Item>
+            <Link href="/api/auth/signout">Logout</Link>
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
+    </Box>
+  );
 };
 
 export default NavBar;
