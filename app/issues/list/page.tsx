@@ -1,35 +1,45 @@
 import { IssueStatusBadge, Link } from "@/app/components";
 import prisma from "@/prisma/client";
-import { Status } from "@prisma/client";
+import { Issue, Status } from "@prisma/client";
 import { Table } from "@radix-ui/themes";
 import IssueActions from "./IssueActions";
+import NextLink from "next/link";
+import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
 
 interface Props {
-  // searchParams: { status?: Status };
-  searchParams: Promise<{ status?: Status }> | { status?: Status };
+  searchParams:
+    | Promise<{
+        status?: Status;
+        orderBy?: keyof Issue;
+        direction?: "asc" | "desc";
+      }>
+    | { status?: Status; orderBy?: keyof Issue; direction?: "asc" | "desc" };
 }
 
 const IssuesPage = async ({ searchParams }: Props) => {
+  const columns: { label: string; value: keyof Issue; className?: string }[] = [
+    { label: "Issue", value: "title" },
+    { label: "Status", value: "status", className: "hidden md:table-cell" },
+    { label: "Created", value: "createdAt", className: "hidden md:table-cell" },
+  ];
+
   // Check if searchParams is a Promise and wait for it to resolve
-  let resolvedParams: { status?: Status };
+  let resolvedParams: {
+    status?: Status;
+    orderBy?: keyof Issue;
+    direction?: "asc" | "desc";
+  };
   if (searchParams instanceof Promise) {
-    // Await the promise to resolve the value
     resolvedParams = await searchParams;
   } else {
-    // If it's already resolved, use it directly
     resolvedParams = searchParams;
   }
-  console.log("From IssuePage (Resolved): ", resolvedParams);
 
   const statuses = Object.values(Status);
+  const { status, orderBy, direction } = resolvedParams;
 
-  const status = resolvedParams?.status;
-  console.log("From IssuePage (Status): ", status);
-
-  // Check if the status is valid or undefined
+  // Validate the status
   const isValidStatus = status === undefined || statuses.includes(status);
-
-  // If status is invalid, return an error message
   if (!isValidStatus) {
     return (
       <div>
@@ -38,21 +48,13 @@ const IssuesPage = async ({ searchParams }: Props) => {
     );
   }
 
-  const issues = await prisma.issue.findMany({
-    where: {
-      status,
-    },
-  });
+  // Default sorting direction
+  const sortDirection = direction || "asc";
 
-  // console.log("From IssuePage (Raw): ", searchParams);
-  // const status = searchParams.status;
-  // console.log("From IssuePage (Status): ", status);
-  // const issues = await prisma.issue.findMany({
-  //   where: {
-  //     status: searchParams.status,
-  //     // status,
-  //   },
-  // });
+  const issues = await prisma.issue.findMany({
+    where: { status },
+    orderBy: orderBy ? { [orderBy]: sortDirection } : undefined,
+  });
 
   return (
     <div>
@@ -60,30 +62,51 @@ const IssuesPage = async ({ searchParams }: Props) => {
       <Table.Root variant="surface">
         <Table.Header>
           <Table.Row>
-            <Table.ColumnHeaderCell>Issue</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell className="hidden md:table-cell">
-              Status
-            </Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell className="hidden md:table-cell">
-              Created
-            </Table.ColumnHeaderCell>
+            {columns.map((column) => {
+              const isCurrentColumn = column.value === orderBy;
+              const nextDirection =
+                isCurrentColumn && sortDirection === "asc" ? "desc" : "asc";
+
+              return (
+                <Table.ColumnHeaderCell key={column.value}>
+                  <NextLink
+                    href={{
+                      query: {
+                        ...resolvedParams,
+                        orderBy: column.value,
+                        direction: nextDirection,
+                      },
+                    }}
+                  >
+                    <div className="flex items-center">
+                      {column.label}
+                      {isCurrentColumn &&
+                        (sortDirection === "asc" ? (
+                          <ArrowUpIcon className="ml-1" />
+                        ) : (
+                          <ArrowDownIcon className="ml-1" />
+                        ))}
+                    </div>
+                  </NextLink>
+                </Table.ColumnHeaderCell>
+              );
+            })}
           </Table.Row>
         </Table.Header>
         <Table.Body>
-          {issues.map((issues) => (
-            <Table.Row key={issues.id}>
+          {issues.map((issue) => (
+            <Table.Row key={issue.id}>
               <Table.Cell>
-                <Link href={`/issues/${issues.id}`}>{issues.title}</Link>
+                <Link href={`/issues/${issue.id}`}>{issue.title}</Link>
                 <div className="block md:hidden">
-                  {" "}
-                  <IssueStatusBadge status={issues.status} />
+                  <IssueStatusBadge status={issue.status} />
                 </div>
               </Table.Cell>
               <Table.Cell className="hidden md:table-cell">
-                <IssueStatusBadge status={issues.status} />
+                <IssueStatusBadge status={issue.status} />
               </Table.Cell>
               <Table.Cell className="hidden md:table-cell">
-                {issues.createdAt.toDateString()}
+                {issue.createdAt.toDateString()}
               </Table.Cell>
             </Table.Row>
           ))}
@@ -92,7 +115,5 @@ const IssuesPage = async ({ searchParams }: Props) => {
     </div>
   );
 };
-
-// export const dynamic = "force-dynamic";
 
 export default IssuesPage;
