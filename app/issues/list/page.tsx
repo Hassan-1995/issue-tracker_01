@@ -1,10 +1,58 @@
 import { IssueStatusBadge, Link } from "@/app/components";
 import prisma from "@/prisma/client";
+import { Status } from "@prisma/client";
 import { Table } from "@radix-ui/themes";
 import IssueActions from "./IssueActions";
 
-const IssuesPage = async () => {
-  const issues = await prisma.issue.findMany();
+interface Props {
+  // searchParams: { status?: Status };
+  searchParams: Promise<{ status?: Status }> | { status?: Status };
+}
+
+const IssuesPage = async ({ searchParams }: Props) => {
+  // Check if searchParams is a Promise and wait for it to resolve
+  let resolvedParams: { status?: Status };
+  if (searchParams instanceof Promise) {
+    // Await the promise to resolve the value
+    resolvedParams = await searchParams;
+  } else {
+    // If it's already resolved, use it directly
+    resolvedParams = searchParams;
+  }
+  console.log("From IssuePage (Resolved): ", resolvedParams);
+
+  const statuses = Object.values(Status);
+
+  const status = resolvedParams?.status;
+  console.log("From IssuePage (Status): ", status);
+
+  // Check if the status is valid or undefined
+  const isValidStatus = status === undefined || statuses.includes(status);
+
+  // If status is invalid, return an error message
+  if (!isValidStatus) {
+    return (
+      <div>
+        <p>Invalid status provided. Please provide a valid status.</p>
+      </div>
+    );
+  }
+
+  const issues = await prisma.issue.findMany({
+    where: {
+      status,
+    },
+  });
+
+  // console.log("From IssuePage (Raw): ", searchParams);
+  // const status = searchParams.status;
+  // console.log("From IssuePage (Status): ", status);
+  // const issues = await prisma.issue.findMany({
+  //   where: {
+  //     status: searchParams.status,
+  //     // status,
+  //   },
+  // });
 
   return (
     <div>
@@ -45,6 +93,6 @@ const IssuesPage = async () => {
   );
 };
 
-export const dynamic = "force-dynamic";
+// export const dynamic = "force-dynamic";
 
 export default IssuesPage;
