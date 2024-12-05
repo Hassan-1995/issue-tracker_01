@@ -3,8 +3,10 @@ import prisma from "@/prisma/client";
 import { Issue, Status } from "@prisma/client";
 import { Table } from "@radix-ui/themes";
 import IssueActions from "./IssueActions";
+
 import NextLink from "next/link";
 import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
+import Pagination from "@/app/components/Pagination";
 
 interface Props {
   searchParams:
@@ -12,8 +14,14 @@ interface Props {
         status?: Status;
         orderBy?: keyof Issue;
         direction?: "asc" | "desc";
+        page: string;
       }>
-    | { status?: Status; orderBy?: keyof Issue; direction?: "asc" | "desc" };
+    | {
+        status?: Status;
+        orderBy?: keyof Issue;
+        direction?: "asc" | "desc";
+        page: string;
+      };
 }
 
 const IssuesPage = async ({ searchParams }: Props) => {
@@ -23,20 +31,25 @@ const IssuesPage = async ({ searchParams }: Props) => {
     { label: "Created", value: "createdAt", className: "hidden md:table-cell" },
   ];
 
-  // Check if searchParams is a Promise and wait for it to resolve
+  //
+
   let resolvedParams: {
     status?: Status;
     orderBy?: keyof Issue;
     direction?: "asc" | "desc";
+    page: string;
   };
+
   if (searchParams instanceof Promise) {
     resolvedParams = await searchParams;
   } else {
     resolvedParams = searchParams;
   }
 
+  //
+
   const statuses = Object.values(Status);
-  const { status, orderBy, direction } = resolvedParams;
+  const { status, orderBy, direction, page } = resolvedParams;
 
   // Validate the status
   const isValidStatus = status === undefined || statuses.includes(status);
@@ -48,12 +61,21 @@ const IssuesPage = async ({ searchParams }: Props) => {
     );
   }
 
-  // Default sorting direction
-  const sortDirection = direction || "asc";
+  const pageSize = 10; // Max issues per page
+  const currentPage = parseInt(page || "1", 10);
+  const skip = (currentPage - 1) * pageSize;
 
+  // Fetch total issue count
+  const totalCount = await prisma.issue.count({
+    where: { status },
+  });
+
+  // Fetch issues with pagination
   const issues = await prisma.issue.findMany({
     where: { status },
-    orderBy: orderBy ? { [orderBy]: sortDirection } : undefined,
+    orderBy: orderBy ? { [orderBy]: direction || "asc" } : undefined,
+    skip,
+    take: pageSize,
   });
 
   return (
@@ -65,7 +87,7 @@ const IssuesPage = async ({ searchParams }: Props) => {
             {columns.map((column) => {
               const isCurrentColumn = column.value === orderBy;
               const nextDirection =
-                isCurrentColumn && sortDirection === "asc" ? "desc" : "asc";
+                isCurrentColumn && direction === "asc" ? "desc" : "asc";
 
               return (
                 <Table.ColumnHeaderCell
@@ -84,7 +106,7 @@ const IssuesPage = async ({ searchParams }: Props) => {
                     <div className="flex items-center">
                       {column.label}
                       {isCurrentColumn &&
-                        (sortDirection === "asc" ? (
+                        (direction === "asc" ? (
                           <ArrowUpIcon className="ml-1" />
                         ) : (
                           <ArrowDownIcon className="ml-1" />
@@ -115,6 +137,13 @@ const IssuesPage = async ({ searchParams }: Props) => {
           ))}
         </Table.Body>
       </Table.Root>
+
+      {/* Pagination */}
+      <Pagination
+        itemCount={totalCount}
+        pageSize={pageSize}
+        currentPage={currentPage}
+      />
     </div>
   );
 };
